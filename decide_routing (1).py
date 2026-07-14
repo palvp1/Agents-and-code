@@ -1,6 +1,3 @@
-# TOOL NAME: decide_routing              (used by: handoff_agent)
-# Paste as a Python code tool named exactly decide_routing.
-
 from typing import Dict, Any
 
 
@@ -9,21 +6,21 @@ def decide_routing() -> Dict[str, Any]:
   Decides the routing destination for this call and produces the handoff
   summary. Call this exactly once when the bot portion of the call is ending.
 
-  No arguments are needed - the decision uses the verified context already
-  stored in this conversation (auth status, caller type, captured intent,
-  policy). The routing matrix is applied deterministically in code.
+  No arguments are needed. The decision uses the verified context already
+  stored in this conversation: authentication status, caller type, captured
+  intent, policy, and language. The routing matrix is applied deterministically
+  in code.
 
   Returns:
     A dictionary with destination (the skill id to transfer to) and
     handoff_summary (the context line for logs - never speak it aloud).
   """
-  s = context.state
-  auth_status = s.get("auth_status")
-  caller_type = s.get("caller_type")
-  intent = s.get("captured_intent")
-  language = s.get("caller_language")
+  auth_status = context.state.get("auth_status")
+  caller_type = context.state.get("caller_type")
+  intent = context.state.get("captured_intent")
+  language = context.state.get("caller_language")
 
-  # Routing matrix - first match wins, top-down (BRD order).
+  # Routing matrix - first match wins, top-down.
   if language == "spanish":
       destination = "cxone_spanish_ivr"
   elif caller_type == "provider":
@@ -43,18 +40,18 @@ def decide_routing() -> Dict[str, Any]:
   else:
       destination = "member_screener_skill"
 
-  policy = s.get("selected_policy") or s.get("policy_number")
-  summary = (f"HANDOFF: destination={destination}"
-             f" | authStatus={auth_status}"
-             f" | callerType={caller_type}"
-             f" | memberId={s.get('member_id')}"
-             f" | policy={policy}"
-             f" | intent={intent}"
-             f" | confidence={s.get('intent_confidence')}"
-             f" | session={context.session_id}")
+  policy = context.state.get("selected_policy") or context.state.get("policy_number")
 
-  s["destination"] = destination
-  s["handoff_summary"] = summary
-  print(f"[decide_routing] {summary}")
+  summary = ("HANDOFF: destination=" + str(destination)
+             + " | auth_status=" + str(auth_status)
+             + " | caller_type=" + str(caller_type)
+             + " | member_id=" + str(context.state.get("member_id"))
+             + " | policy=" + str(policy)
+             + " | intent=" + str(intent)
+             + " | confidence=" + str(context.state.get("intent_confidence")))
+
+  context.state["destination"] = destination
+  context.state["handoff_summary"] = summary
+  print(summary)
 
   return {"destination": destination, "handoff_summary": summary}
